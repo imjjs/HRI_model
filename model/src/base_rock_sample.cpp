@@ -26,7 +26,8 @@ string RockSampleState::text() const {
  * RockSample class
  * ==============================================================================*/
 
-BaseRockSample::BaseRockSample(string map) { // Not modified based on my model yet
+BaseRockSample::BaseRockSample(string map) :
+	bitsPerUser(adapt_bits + 1 + hi_bits){ // Not modified based on my model yet
 	ifstream fin(map.c_str(), ifstream::in);
 	string tmp;
 	fin >> tmp >> tmp >> size_ >> size_;
@@ -222,28 +223,57 @@ State* BaseRockSample::CreateStartState(string type) const {
 
 	//HI
 	//based on robot's distance to each rock
-	@@
-
-	// HI is the closest rock to robot -> HCL is high.
-	
-	// Find the closest rock
-	int chosen = ClosestRock(rock_pos_, start_pos_, true);
-	string bin_chosen = bitset<hi_bits>(chosen).to_string();
-
-	// set HI
-	int pos = 0;
-	for (int i = 0; i < num_users_; ++i) {
-		for (int j = hi_bits-1; j >= 0; --j) {
-			if (bin_chosen[j] == '1') {
-				SetFlag(state, pos);	
+	vector<double> probs = HIProbs(rockstate);
+	//cdf
+	vector<double> cdf (num_rocks_ + 1, 0.0);
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		cdf[rock + 1] = cdf[rock] + probs[rock];
+	for (int user = 0; user < num_users_; ++user) {
+		int rand_num = Random::RANDOM.NextInt(100);
+		for (int rock = 0; rock < num_rocks_; ++rock) {
+			if (rand_num >= cdf[rock] * 100 && rand_num < cdf[rock + 1] * 100) {
+				SetHI(rockstate, user, rock);
+				break;
 			}
-			++pos;
 		}
 	}
 
-
 	return rockstate;
 }	
+
+vector<double> BaseRockSample::HIProbs(const State* state) const {
+	vector<bool> rock_exist (num_rocks_, false);
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		rock_exist[rock] = GetRock(state, rock);
+
+	vector<double> dist;
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		if (rock_exist[rock])
+			dist.push_back(exp(-1.0 * Coord::EuclideanDistance(GetRobPos(state), rock_pos_[rock])));
+
+	//softmax to get probability
+	double maxDist = dist[0];
+	for (const auto& elem : dist)
+		maxDist = max(maxDist, elem);
+	for (auto& elem : dist)
+		elem -= maxDist;
+	double expSum (0.0);
+	for (const auto& elem : dist)
+		expSum += exp(elem);
+	for (auto& elem : dist)
+		elem = exp(elem) / expSum;
+
+	vector<double> probs (num_rocks_, 0.0);
+	int count (0);
+	for (int rock = 0; rock < num_rocks_; ++rock) {
+		if (rock_exist[rock]) {
+			probs[rock] = dist[count];
+			++count;
+		}
+	}
+
+	return probs;
+}
 
 /*
 // OPTIONAL FUNCTIONS: Custom Belief
@@ -891,7 +921,7 @@ void BaseRockSample::PrintState(const State& state, ostream& out) const {
 		for (int x = 0; x < size_; x++) {
 			Coord pos(x, y);
 			int rock = grid_(pos);
-			bool status = rock >= 0 ? GetRock(rock) : false;
+			bool status = rock >= 0 ? GetRock(&state, rock) : false;
 			if (GetRobPos(&state) == Coord(x, y))
 				out << "R ";
 			else if (status)
@@ -1352,21 +1382,34 @@ double BaseRockSample::CosineSimilarity(Coord R, Coord A, Coord B) const {
 	return dot / (sqrt(denom_a) * sqrt(denom_b));
 }
 
-int BaseRockSample::ClosestRock(const vector<Coord>& rocks, Coord robot, bool checkExistence) const {
+int BaseRockSample::ClosestRockAmongAll(const State* state) const {
+	Coord robot = GetRobPos(state);
 	int chosen = -1;
 	double min_dist = (double) INT32_MAX;
 	double dist;
-	for (int rock = 0; rock < rocks.size(); ++rock) {
-		if (checkExistence) {
-			if (!rock_exist_[rock]) continue;
-		}
-		dist = Coord::EuclideanDistance(robot, rocks[rock]);
+	for (int rock = 0; rock < num_rocks_; ++rock) {
+		if (!GetRock(state, rock)) continue;
+		dist = Coord::EuclideanDistance(robot, rock_pos_[rock]);
 		if (dist < min_dist) {
 			min_dist = dist;
 			chosen = rock;
 		}
 	}
 	return chosen;
+}
+
+int BaseRockSample::ClosestRockAmongCandid(const std::vector<Coord>& rocks, Coord robot, std::unordered_map<int, int> rockIdxMap) const {
+	int chosen = -1;
+	double min_dist = (double) INT32_MAX;
+	double dist;
+	for (int rock = 0; rock < rocks.size(); ++rock) {
+		dist = Coord::EuclideanDistance(robot, rocks[rock]);
+		if (dist < min_dist) {
+			min_dist = dist;
+			chosen = rock;
+		}
+	}
+	return rockIdxMap[chosen];
 }
 
 OBS_TYPE BaseRockSample::HumanActionsEncode(int *human_actions) const {

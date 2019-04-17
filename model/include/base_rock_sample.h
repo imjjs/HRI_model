@@ -10,6 +10,7 @@
 #include <despot/core/builtin_policy.h>
 #include <despot/core/builtin_upper_bounds.h>
 #include <despot/core/particle_belief.h>
+#include <unordered_map>
 
 namespace despot {
 
@@ -199,6 +200,7 @@ public:
 	}
 	*/
 
+	std::vector<double> HIProbs(const State* state) const;
 	void SetRock(State* state, int rock) const;
 	bool GetRock(const State* state, int rock) const;
 	void TakeRock(State* state, int rock) const;
@@ -221,7 +223,8 @@ public:
 	void DecY(State* state) const;
 	double CosineSimilarity(Coord R, Coord A, Coord B) const;
 	double Similarity(const State* state) const;
-	int ClosestRock(const std::vector<Coord>& rocks, Coord robot, bool checkExistence) const;
+	int ClosestRockAmongAll(const State* state) const;
+	int ClosestRockAmongCandid(const std::vector<Coord>& rocks, Coord robot, std::unordered_map<int, int> rockIdxMap) const;
 	
 	//Encode an array of human actions to OBS_TYPE
 	OBS_TYPE HumanActionsEncode(int *human_actions) const;

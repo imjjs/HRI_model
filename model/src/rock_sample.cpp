@@ -20,14 +20,28 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 	reward = 0;
 	bool res(false);
 
+	vector<bool> rock_exist (num_rocks_, false);
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		rock_exist[rock] = GetRock(&rockstate, rock);
+
 	if (action < E_SLAVE) { // Move
 		//additional penalty for ignoring human
 		reward -= 20;
+
+		//if human already engaged and hcl is high, robot should not move, let human play
+		bool flag = true;
+		for (int user = 0; user < num_users_; ++user) {
+			if (!GetHA(&rockstate, user))
+				flag = false;
+		}
+		if (Similarity(&rockstate) < 0.50)
+			flag = false;
+		if (flag) reward -= 100;
+
 		res = MoveRobot(rockstate, action, reward);
 	} else if (action == E_SLAVE) {
 		//Determine user action then move
-		//decode previous observed human actions
-		ACT_TYPE human_action = HumanActions();
+		ACT_TYPE human_action = GetHumanAction(&rockstate);
 		if (human_action < E_STAY) { // Move
 			res = MoveRobot(rockstate, human_action, reward);
 		}
@@ -41,7 +55,7 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 		}
 		//get group hcl
 		double hcl = Similarity(&rockstate); // in range [-1, 1]
-		if (hcl > 0.90) { //@@ think about this value
+		if (hcl >= 0.50) { //@@ think about this value
 			// hcl is already high enough
 			reward -= 100;
 		} else {
@@ -53,26 +67,25 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 			// Find rocks that users are interested in
 			vector<Coord> candid_rocks;
 			unordered_map<int, int> rockIdxMap;
+			int count (0);
 			for (int user = 0; user < num_users_; ++user) {
 				//@@ think of situations when HI is a rock that has just been picked up
 				//Okay, now there is no extra exit state, when all rocks are picked up, end of game
 				//This gaurantee that if game not end, there is at least one rock left for pick up.
 				int rockID = GetHIIndex(&rockstate, user);
-				if (rock_exist_[rockID]) {
-					candid_rocks.push_back(GetHI(&rockstate, user));
-					rockIdxMap[user] = rockID;
+				if (rock_exist[rockID]) {
+					candid_rocks.push_back(rock_pos_[rockID]);
+					rockIdxMap[count] = rockID;
+					++count;
 				}
 			}
 
 			// Find closest rock as intention
 			int chosen;
-			if (candid_rocks.empty()) {
-				chosen = ClosestRock(rock_pos_, GetRobPos(&rockstate), true);
-			}
-			else {
-				int user = ClosestRock(candid_rocks, GetRobPos(&rockstate), false);
-				chosen = rockIdxMap[user];
-			}
+			if (candid_rocks.empty())
+				chosen = ClosestRockAmongAll(&rockstate);
+			else
+				chosen = ClosestRockAmongCandid(candid_rocks, GetRobPos(&rockstate), rockIdxMap);
 						
 			// For each user, they switch their HI to this new HI with probability of adapt
 			for (int user = 0; user < num_users_; ++user) {
@@ -107,14 +120,14 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 	//Get new human actions as observation
 	// This is based on simulation of human behaviors
 	//@@ TODO
-	Coord current_pos = GetRobPos(&state);
-	int p1_action = Player::player_list[0]->play(grid_, rock_pos_, current_pos , rock_exist_);
-	int p2_action = Player::player_list[1]->play(grid_, rock_pos_, current_pos, rock_exist_);
+	int p1_action = Player::player_list[0]->play(grid_, rock_pos_, GetRobPos(&rockstate), rock_exist);
+	int p2_action = Player::player_list[1]->play(grid_, rock_pos_, GetRobPos(&rockstate), rock_exist);
 	int human_actions[2];//get human_action from human behavior simulation code
 	human_actions[0] = p1_action;
 	human_actions[1] = p2_action;
 	obs = HumanActionsEncode(human_actions);
-	prev_human_actions_obs = obs;
+	ACT_TYPE human_action = HumanActions(obs);
+	SetHumanAction(&rockstate, human_action);
 
 	return res;
 }
@@ -211,17 +224,17 @@ bool RockSample::MoveRobot(RockSampleState& rockstate, ACT_TYPE action, double& 
 	}
 
 	//if robot pos == rock position, pick up the rock
-	for (int rock = 0; rock < rock_pos_.size(); ++rock) {
-		if (rock_exist_[rock] && GetX(&rockstate) == rock_pos_[rock].x &&
-		GetY(&rockstate) == rock_pos_[rock].y) {
+	for (int rock = 0; rock < num_rocks_; ++rock) {
+		if (GetRock(&rockstate, rock) && GetX(&rockstate) == rock_pos_[rock].x &&
+			GetY(&rockstate) == rock_pos_[rock].y) {
 			reward += 10;
-			rock_exist_[rock] = false;
+			TakeRock(&rockstate, rock);
 			break;
 		}
 	}
 
 	for (int rock = 0; rock < rock_pos_.size(); ++rock) {
-		if (rock_exist_[rock]) return false;
+		if (GetRock(&rockstate, rock)) return false;
 	}
 	reward += 10; //end game reward
 	return true; //if all rocks are picked, end of game.
@@ -253,7 +266,7 @@ void RockSample::InitializeMaxent(const RockSampleState& rockstate, int user) co
 	//initialize game_rocks
 	game_rocks_.clear();
 	for (int rock = 0; rock < rock_pos_.size(); ++rock) {
-		if (rock_exist_[rock]) game_rocks_.insert(CoordToIndex(rock_pos_[rock]));
+		if (GetRock(&rockstate, rock)) game_rocks_.insert(CoordToIndex(rock_pos_[rock]));
 	}
 }
 
@@ -276,12 +289,13 @@ double RockSample::ActionProbGivenHI(const RockSampleState& rockstate, ACT_TYPE 
 		}
 
 		//@@ new_V diverge? need to z-score it?
-		// new_V = (new_V - new_V.mean()) / new_V.std();
+		//Answer: after z-score, this no longer works.
 		
+		converge = true;
 		//check convergence
 		for (int s = 0; s < num_states; ++s) {
-			if (abs(V[s] - new_V[s]) <= 1e-4) {
-				converge = true;
+			if (abs(V[s] - new_V[s]) > 1e-4) {
+				converge = false;
 				break;
 			}
 		}
