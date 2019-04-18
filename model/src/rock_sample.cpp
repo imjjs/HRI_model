@@ -20,23 +20,25 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 	reward = 0;
 	bool res(false);
 
-	vector<bool> rock_exist;
-	for (int rock = 0; rock < num_rocks_; ++rock)
-		rock_exist.push_back(GetRock(&rockstate, rock));
-
 	if (action < E_SLAVE) { // Move
 		//additional penalty for ignoring human
-		reward -= 20;
+		reward -= 50;
 
 		//if human already engaged and hcl is high, robot should not move, let human play
+		if (GetHA(&rockstate, 0) && GetHA(&rockstate, 1) && Similarity(&rockstate) >= 0.5)
+			reward -= 100;
+		//try influence user first
+		else if (GetHA(&rockstate, 0) && GetHA(&rockstate, 1))
+			reward -= 20;
+		/*
 		bool flag = true;
 		for (int user = 0; user < num_users_; ++user) {
 			if (!GetHA(&rockstate, user))
 				flag = false;
 		}
-		if (Similarity(&rockstate) < 0.50)
+		if (Similarity(&rockstate) < 0.90)
 			flag = false;
-		if (flag) reward -= 100;
+		if (flag) reward -= 100; */
 
 		res = MoveRobot(rockstate, action, reward);
 	} else if (action == E_SLAVE) {
@@ -58,78 +60,120 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 		if (hcl >= 0.50) { //@@ think about this value
 			// hcl is already high enough
 			reward -= 100;
-		} else {
-			//@@ Assume when robot tries to influence HIs, it provides a specific HI
-			// to let all users adapt their HI to this HI. 
-			// In this specific example, I choose to use the closest rock that each user
-			// intend to grab as the new HI
+		}
+		//@@ Assume when robot tries to influence HIs, it provides a specific HI
+		// to let all users adapt their HI to this HI.
+		// In this specific example, I choose to use the closest rock that each user
+		// intend to grab as the new HI
 
-			// Find rocks that users are interested in
-			vector<Coord> candid_rocks;
-			unordered_map<int, int> rockIdxMap;
-			int count (0);
-			for (int user = 0; user < num_users_; ++user) {
-				//@@ think of situations when HI is a rock that has just been picked up
-				//Okay, now there is no extra exit state, when all rocks are picked up, end of game
-				//This gaurantee that if game not end, there is at least one rock left for pick up.
-				int rockID = GetHIIndex(&rockstate, user);
-				if (rock_exist[rockID]) {
-					candid_rocks.push_back(rock_pos_[rockID]);
-					rockIdxMap[count] = rockID;
-					++count;
-				}
+		// Find rocks that users are interested in
+		vector<Coord> candid_rocks;
+		unordered_map<int, int> rockIdxMap;
+		int count (0);
+		for (int user = 0; user < num_users_; ++user) {
+			//@@ think of situations when HI is a rock that has just been picked up
+			//Okay, now there is no extra exit state, when all rocks are picked up, end of game
+			//This gaurantee that if game not end, there is at least one rock left for pick up.
+			int rockID = GetHIIndex(&rockstate, user);
+			if (GetRock(&rockstate, rockID)) {
+				candid_rocks.push_back(rock_pos_[rockID]);
+				rockIdxMap[count] = rockID;
+				++count;
 			}
+		}
 
-			// Find closest rock as intention
-			int chosen;
-			if (candid_rocks.empty())
-				chosen = ClosestRockAmongAll(&rockstate);
-			else
-				chosen = ClosestRockAmongCandid(candid_rocks, GetRobPos(&rockstate), rockIdxMap);
-						
-			// For each user, they switch their HI to this new HI with probability of adapt
-			for (int user = 0; user < num_users_; ++user) {
-				Player::player_list[user]->updating_rcf(chosen);
-				if (GetHIIndex(&rockstate, user) == chosen) continue;
-				double adapt = GetAdaptability(&rockstate, user);
-				if (rand_num > (1 - adapt)) {
-					//user switches their HI
-					SetHI(&rockstate, user, chosen);
-					reward += 10; //@@ think about this value.
-				} // otherwise user does not change their mind.
-			}
+		// Find closest rock as intention
+		int chosen;
+		if (candid_rocks.empty())
+			chosen = ClosestRockAmongAll(&rockstate);
+		else
+			chosen = ClosestRockAmongCandid(candid_rocks, GetRobPos(&rockstate), rockIdxMap);
+
+		// For each user, they switch their HI to this new HI with probability of adapt
+		for (int user = 0; user < num_users_; ++user) {
+			//Player::player_list[user]->updating_rcf(chosen);
+			if (GetHIIndex(&rockstate, user) == chosen) continue;
+			double adapt = GetAdaptability(&rockstate, user);
+			if (rand_num > (1 - adapt)) {
+				//user switches their HI
+				SetHI(&rockstate, user, chosen);
+				reward += 10; //@@ think about this value.
+			} // otherwise user does not change their mind.
 		}
 	} else if (action > E_HI) {
 		reward -= 10;
 		int user = action - E_HI - 1; //which user
-		if (GetHA(&rockstate, user)) {
+		if (GetHA(&rockstate, user))
 			// this user is already engaged
 			reward -= 100;
-		} else {
-			Player::player_list[user]->updating_noise();
+		//Player::player_list[user]->updating_noise();
 
-			double adapt = GetAdaptability(&rockstate, user);
-			if (rand_num > (1 - adapt)) {
-				//user becomes engaged with probability adapt
-				SetHA(&rockstate, user);
-				reward += 10; //@@ think about this value.
-			} //otherwise user stay not engaged
-		}
+		double adapt = GetAdaptability(&rockstate, user);
+		if (rand_num > (1 - adapt)) {
+			//user becomes engaged with probability adapt
+			SetHA(&rockstate, user);
+			reward += 10; //@@ think about this value.
+		} //otherwise user stay not engaged
 	}
 
 	//Get new human actions as observation
-	// This is based on simulation of human behaviors
-	//@@ TODO
-	int p1_action = Player::player_list[0]->play(grid_, rock_pos_, GetRobPos(&rockstate), rock_exist);
-	int p2_action = Player::player_list[1]->play(grid_, rock_pos_, GetRobPos(&rockstate), rock_exist);
-	int human_actions[2];//get human_action from human behavior simulation code
-	human_actions[0] = p1_action;
-	human_actions[1] = p2_action;
+	//Naive estimation
+	int human_actions[2];
+	human_actions[0] = GenHumanAction(rockstate, 0);
+	human_actions[1] = GenHumanAction(rockstate, 1);
+	/* hcl is quite unstable
+	if (Similarity(&rockstate) > 0.9)
+		human_actions[1] = human_actions[0];
+	else
+		human_actions[1] = GenHumanAction(rockstate, 1);
+	*/
 	obs = HumanActionsEncode(human_actions);
 	ACT_TYPE human_action = HumanActions(obs);
 	SetHumanAction(&rockstate, human_action);
 
 	return res;
+}
+
+ACT_TYPE RockSample::GenHumanAction(const State& state, int user) const {
+	//if ha not engaged, then human action is random
+	if (!GetHA(&state, user)) {
+		//5 actions
+		int rand_num = Random::RANDOM.NextInt(5);
+		if (rand_num < 1) return Compass::NORTH;
+		else if (rand_num < 2) return Compass::EAST;
+		else if (rand_num < 3) return Compass::SOUTH;
+		else if (rand_num < 4) return Compass::WEST;
+		else return E_STAY;
+	} else {
+		Coord rock = GetHI(&state, user);
+		//assume user move to satisfy hi, very naive
+		Coord robot = GetRobPos(&state);
+		if (robot.x == rock.x) {
+			if (rock.y > robot.y) return Compass::NORTH;
+			return Compass::SOUTH;
+		} else if (robot.y == rock.y) {
+			if (rock.x > robot.x) return Compass::EAST;
+			return Compass::WEST;
+		} else {
+			if (rock.x > robot.x && rock.y > robot.y) {
+				if (Random::RANDOM.NextInt(2))
+					return Compass::NORTH;
+				return Compass::EAST;
+			} else if (rock.x > robot.x && rock.y < robot.y) {
+				if (Random::RANDOM.NextInt(2))
+					return Compass::SOUTH;
+				return Compass::EAST;
+			} else if (rock.x < robot.x && rock.y < robot.y) {
+				if (Random::RANDOM.NextInt(2))
+					return Compass::SOUTH;
+				return Compass::WEST;
+			} else {
+				if (Random::RANDOM.NextInt(2))
+					return Compass::NORTH;
+				return Compass::WEST;
+			}
+		}
+	}
 }
 
 int RockSample::NumActions() const {

@@ -83,11 +83,13 @@ BaseRockSample::BaseRockSample(int size, int rocks, int users) :
 	}
 
 	// InitStates();
+	/*
 	Player::set_rock_num(rocks);
 	Player* p1 = new Player(.2, .1, 1);
 	Player* p2 = new Player(.3, .2, 1.1);
 	Player::player_list.push_back(p1);
 	Player::player_list.push_back(p2);
+	*/
 
 }
 
@@ -1491,11 +1493,13 @@ ACT_TYPE BaseRockSample::HumanActions(OBS_TYPE human_actions_obs) const {
 	if (num_users_ == 2) {
 		if (human_actions[0] == human_actions[1]){
 			action = human_actions[0];
-		} else {
+		}
+		/*
+		else {
 			for(int i = 0; i < Player::player_list.size(); ++i){
 				(Player::player_list[i])->updating_hcf();
 			}
-		}
+		}*/
 	} else if (num_users_ > 2) {
 		//use user choices to sample
 		//@@TODO

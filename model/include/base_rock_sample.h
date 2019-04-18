@@ -234,6 +234,10 @@ public:
 	//Combined human actions for robot to follow based on prev_human_actions_obs
 	ACT_TYPE HumanActions(OBS_TYPE human_actions_obs) const;
 
+	inline int l1_distance(const despot::Coord& a_pos, const despot::Coord& b_pos) const {
+		return abs(a_pos.x - b_pos.x) + abs(a_pos.y - b_pos.y);
+	}
+
 protected:
 	void InitializeTransitions();
 	Coord IndexToCoord(int pos) const;

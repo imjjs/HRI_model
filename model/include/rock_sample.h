@@ -25,6 +25,7 @@ public:
 	double ObsProb(OBS_TYPE obs, const State& state, ACT_TYPE action) const;
 	void PrintObs(const State& state, OBS_TYPE observation,
 		std::ostream& out = std::cout) const;
+	ACT_TYPE GenHumanAction(const State& state, int user) const;
 
 private:
 	//helper function for Step
