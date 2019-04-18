@@ -108,7 +108,7 @@ void BaseRockSample::InitGeneral() {
 			//NextInt(int n), randomly generate between [0, n)
 			pos = Coord(Random::RANDOM.NextInt(size_),
 				Random::RANDOM.NextInt(size_));
-		} while (grid_(pos) >= 0 && pos.x != start_pos_.x && pos.y != start_pos_.y);
+		} while (grid_(pos) >= 0 && (pos.x != start_pos_.x && pos.y != start_pos_.y));
 		grid_(pos) = i;
 		rock_pos_.push_back(pos);
 	}
@@ -242,14 +242,15 @@ State* BaseRockSample::CreateStartState(string type) const {
 }	
 
 vector<double> BaseRockSample::HIProbs(const State* state) const {
-	vector<bool> rock_exist (num_rocks_, false);
+	//use softmax, the exponential of negative distance
+	vector<bool> rock_exist;
 	for (int rock = 0; rock < num_rocks_; ++rock)
-		rock_exist[rock] = GetRock(state, rock);
+		rock_exist.push_back(GetRock(state, rock));
 
 	vector<double> dist;
 	for (int rock = 0; rock < num_rocks_; ++rock)
 		if (rock_exist[rock])
-			dist.push_back(exp(-1.0 * Coord::EuclideanDistance(GetRobPos(state), rock_pos_[rock])));
+			dist.push_back(Coord::EuclideanDistance(GetRobPos(state), rock_pos_[rock]));
 
 	//softmax to get probability
 	double maxDist = dist[0];
@@ -259,9 +260,9 @@ vector<double> BaseRockSample::HIProbs(const State* state) const {
 		elem -= maxDist;
 	double expSum (0.0);
 	for (const auto& elem : dist)
-		expSum += exp(elem);
+		expSum += exp(-1.0 * elem);
 	for (auto& elem : dist)
-		elem = exp(elem) / expSum;
+		elem = exp(-1.0 * elem) / expSum;
 
 	vector<double> probs (num_rocks_, 0.0);
 	int count (0);
@@ -356,7 +357,7 @@ Belief* BaseRockSample::InitialBelief(const State* start, string type) const {
 		//based on robot's distance to each rock
 		vector<double> hi_probs = HIProbs(start);
 
-		int N = pow(5 * 2 * num_rocks_, num_users_);
+		/*int N = pow(5 * 2 * num_rocks_, num_users_);*/
 
 		for (int adapt0 = 0; adapt0 < 5; ++adapt0) {
 			for (int adapt1 = 0; adapt1 < 5; ++adapt1) {
@@ -365,19 +366,32 @@ Belief* BaseRockSample::InitialBelief(const State* start, string type) const {
 						for (int hi0 = 0; hi0 < num_rocks_; ++hi0) {
 							for (int hi1 = 0; hi1 < num_rocks_; ++hi1) {
 								State* rockstate = new RockSampleState(start->state_id);
-
-
+								//Set Adaptability
+								SetAdaptability(rockstate, 0, adapt0);
+								SetAdaptability(rockstate, 1, adapt1);
+								//Set HA
+								if (ha0 == 1)
+									SetHA(rockstate, 0);
+								else
+									UnsetHA(rockstate, 0);
+								if (ha1 == 1)
+									SetHA(rockstate, 1);
+								else
+									UnsetHA(rockstate, 1);
+								//Set HI
+								SetHI(rockstate, 0, hi0);
+								SetHI(rockstate, 1, hi1);
+								double weight = adapt_probs[adapt0] * adapt_probs[adapt1] *
+										ha_probs[ha0] * ha_probs[ha1] * hi_probs[hi0] *
+										hi_probs[hi1];
+								particles.push_back(static_cast<RockSampleState*>
+										(Allocate(rockstate->state_id, weight)));
 							}
 						}
 					}
 				}
 			}
 		}
-
-		//current start state is deterministic, check CreateStartState
-		//therefore only 1 particle
-		RockSampleState* rockstate = static_cast<RockSampleState*>(Allocate(start->state_id, 1.0));
-		particles.push_back(rockstate);
 
 		return new ParticleBelief(particles, this);
 	} else {
@@ -978,9 +992,11 @@ void BaseRockSample::PrintBelief(const Belief& belief, ostream& out) const {
 		for (int user = 0; user < num_users_; ++user) {
 			adapt_probs[user] += GetAdaptability(particle, user) * particle->weight;
 			ha_probs[user] += (GetHA(particle, user) ? 1 : 0) * particle->weight;
+			hi_probs[user][GetHIIndex(particle, user)] += particle->weight;
+			/*
 			for (int rock = 0; rock < num_rocks_; ++rock) {
 				hi_probs[user][rock] += GetHIIndex(particle, user) * particle->weight;
-			}
+			}*/
 		}
 		hcl_probs += Similarity(particle) * particle->weight;
 		pos_probs[GetRobPosIndex(particle)] += particle->weight;
@@ -1251,6 +1267,10 @@ bool BaseRockSample::GetHA(const State* state, int user) const {
 
 void BaseRockSample::SetHA(State* state, int user) const {
 	return SetFlag(state->state_id, user + (num_users_ * hi_bits));
+}
+
+void BaseRockSample::UnsetHA(State* state, int user) const {
+	return UnsetFlag(state->state_id, user + (num_users_ * hi_bits));
 }
 
 int BaseRockSample::GetHIIndex(const State* state, int user) const {

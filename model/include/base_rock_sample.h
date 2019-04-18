@@ -212,6 +212,7 @@ public:
 	void SetAdaptability(State* state, int user, int adapt) const;
 	bool GetHA(const State* state, int user) const;
 	void SetHA(State* state, int user) const;
+	void UnsetHA(State* state, int user) const;
 	int GetHIIndex(const State* state, int user) const;
 	void SetHI(State* state, int user, int hi) const;
 	Coord GetHI(const State* state, int user) const;

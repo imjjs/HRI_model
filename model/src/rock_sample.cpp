@@ -20,9 +20,9 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 	reward = 0;
 	bool res(false);
 
-	vector<bool> rock_exist (num_rocks_, false);
+	vector<bool> rock_exist;
 	for (int rock = 0; rock < num_rocks_; ++rock)
-		rock_exist[rock] = GetRock(&rockstate, rock);
+		rock_exist.push_back(GetRock(&rockstate, rock));
 
 	if (action < E_SLAVE) { // Move
 		//additional penalty for ignoring human
@@ -151,6 +151,7 @@ double RockSample::ObsProb(OBS_TYPE obs, const State& state, ACT_TYPE action) co
 			double prob = static_cast<double>(1) / (E_STAY + 1);
 			probs.push_back(prob);
 		} else { //based on the principle of maximum entropy
+			//int hi = GetHIIndex(&rockstate, user);
 			InitializeMaxent(rockstate, user);
 			probs.push_back(ActionProbGivenHI(rockstate, human_actions[user]));
 		}
@@ -222,23 +223,42 @@ bool RockSample::MoveRobot(RockSampleState& rockstate, ACT_TYPE action, double& 
 		break;
 	}
 
-	//@@ update belief
-
 	//if robot pos == rock position, pick up the rock
 	for (int rock = 0; rock < num_rocks_; ++rock) {
 		if (GetRock(&rockstate, rock) && GetX(&rockstate) == rock_pos_[rock].x &&
 			GetY(&rockstate) == rock_pos_[rock].y) {
 			reward += 10;
 			TakeRock(&rockstate, rock);
+			//check if end game
+			int countRock = 0;
+			for (int i = 0; i < num_rocks_; ++i) {
+				if (GetRock(&rockstate, i)) ++countRock;
+			}
+			if (countRock == 0) {
+				reward += 10;
+				return true;
+			}
+			//update belief for each user
+			for (int user = 0; user < num_users_; ++user) {
+				if (GetHIIndex(&rockstate, user) == rock) {
+					vector<double> probs = HIProbs(&rockstate);
+					vector<double> cdf (num_rocks_ + 1, 0.0);
+					for (int i = 0; i < num_rocks_; ++i)
+						cdf[i + 1] = cdf[i] + probs[i];
+					int rand_num = Random::RANDOM.NextInt(100);
+					for (int i = 0; i < num_rocks_; ++i) {
+						if (rand_num >= cdf[i] * 100 && rand_num < cdf[i + 1] * 100) {
+							SetHI(&rockstate, user, i);
+							break;
+						}
+					}
+				}
+			}
+
 			break;
 		}
 	}
-
-	for (int rock = 0; rock < rock_pos_.size(); ++rock) {
-		if (GetRock(&rockstate, rock)) return false;
-	}
-	reward += 10; //end game reward
-	return true; //if all rocks are picked, end of game.
+	return false;
 }
 
 void RockSample::InitializeMaxent(const RockSampleState& rockstate, int user) const {
@@ -266,7 +286,7 @@ void RockSample::InitializeMaxent(const RockSampleState& rockstate, int user) co
 
 	//initialize game_rocks
 	game_rocks_.clear();
-	for (int rock = 0; rock < rock_pos_.size(); ++rock) {
+	for (int rock = 0; rock < num_rocks_; ++rock) {
 		if (GetRock(&rockstate, rock)) game_rocks_.insert(CoordToIndex(rock_pos_[rock]));
 	}
 }
@@ -316,18 +336,17 @@ double RockSample::ActionProbGivenHI(const RockSampleState& rockstate, ACT_TYPE 
 
 	//softmax to get probability
 	double maxQ = Qs[0];
-	for (int a = 0; a < num_actions; ++a) {
-		maxQ = max(maxQ, Qs[a]);
-	}
-	for (int a = 0; a < num_actions; ++a) {
-		Qs[a] -= maxQ;
-	}
-	double expSum = 0;
-	for (int a = 0; a < num_actions; ++a) {
-		expSum += exp(Qs[a]);
-	}
+	for (const auto& elem : Qs)
+		maxQ = max(maxQ, elem);
+	for (auto& elem : Qs)
+		elem -= maxQ;
+	double expSum (0.0);
+	for (const auto& elem : Qs)
+		expSum += exp(elem);
+	for (auto& elem : Qs)
+		elem = exp(elem) / expSum;
 	
-	return exp(Qs[action]) / expSum;
+	return Qs[action];
 }
 
 int RockSample::NextState(int s, ACT_TYPE a) const {
