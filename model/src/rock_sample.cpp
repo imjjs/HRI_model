@@ -194,12 +194,11 @@ void RockSample::PrintObs(const State& state, OBS_TYPE observation,
 bool RockSample::MoveRobot(RockSampleState& rockstate, ACT_TYPE action, double& reward) const {
 	switch (action) {
 	case Compass::EAST:
-		if (GetX(&rockstate) + 1 < size_) {
+		if (GetX(&rockstate) + 1 < size_)
 			IncX(&rockstate);
-			break;
-		} else {
+		else
 			reward -= 100;
-		}
+		break;
 
 	case Compass::NORTH:
 		if (GetY(&rockstate) + 1 < size_)
@@ -222,6 +221,8 @@ bool RockSample::MoveRobot(RockSampleState& rockstate, ACT_TYPE action, double& 
 			reward -= 100;
 		break;
 	}
+
+	//@@ update belief
 
 	//if robot pos == rock position, pick up the rock
 	for (int rock = 0; rock < num_rocks_; ++rock) {

@@ -1,7 +1,7 @@
 #include "base_rock_sample.h"
 #include "simulator.h"
 #include <bitset>
-
+#include <math.h>
 
 using namespace std;
 
@@ -346,18 +346,40 @@ Belief* BaseRockSample::InitialBelief(const State* start, string type) const {
 	vector<State*> particles;
 
 	if (type == "DEFAULT" || type == "PARTICLE") {
+		//Adaptability, 5 possibilities
+		//E_00: 0.1, E_25: 0.1, E_50: 0.2, E_75: 0.3, E_100: 0.3
+		vector<double> adapt_probs {0.1, 0.1, 0.2, 0.3, 0.3};
+		//Human Attentiveness, 2 possibilities
+		//not engaged: 0.25, engaged: 0.75
+		vector<double> ha_probs {0.25, 0.75};
+		//HI, num_rocks_ possibilities
+		//based on robot's distance to each rock
+		vector<double> hi_probs = HIProbs(start);
+
+		int N = pow(5 * 2 * num_rocks_, num_users_);
+
+		for (int adapt0 = 0; adapt0 < 5; ++adapt0) {
+			for (int adapt1 = 0; adapt1 < 5; ++adapt1) {
+				for (int ha0 = 0; ha0 < 2; ++ha0) {
+					for (int ha1 = 0; ha1 < 2; ++ha1) {
+						for (int hi0 = 0; hi0 < num_rocks_; ++hi0) {
+							for (int hi1 = 0; hi1 < num_rocks_; ++hi1) {
+								State* rockstate = new RockSampleState(start->state_id);
+
+
+							}
+						}
+					}
+				}
+			}
+		}
+
 		//current start state is deterministic, check CreateStartState
 		//therefore only 1 particle
 		RockSampleState* rockstate = static_cast<RockSampleState*>(Allocate(start->state_id, 1.0));
 		particles.push_back(rockstate);
 
 		return new ParticleBelief(particles, this);
-	/*
-	if (type == "DEFAULT" || type == "PARTICLE") {
-		return new ParticleBelief(InitialParticleSet(), this);
-	} else if (type == "NOISY") {
-		return new ParticleBelief(NoisyInitialParticleSet(), this);
-	*/
 	} else {
 		cerr << "Unsupported initial belief type: " << type << endl;
 		exit(0);
@@ -1255,27 +1277,27 @@ Coord BaseRockSample::GetHI(const State* state, int user) const {
 }
 
 int BaseRockSample::GetX(const State* state) const {
-	return (state->state_id >> (num_users_ * 8)) % grid_.xsize();
+	return (state->state_id >> (action_bits + num_rocks_ + num_users_ * bitsPerUser)) % grid_.xsize();
 }
 
 void BaseRockSample::IncX(State* state) const {
-	state->state_id += (1 << (num_users_ * 8));
+	state->state_id += (1 << (action_bits + num_rocks_ + num_users_ * bitsPerUser));
 }
 
 void BaseRockSample::DecX(State* state) const {
-	state->state_id -= (1 << (num_users_ * 8));
+	state->state_id -= (1 << (action_bits + num_rocks_ + num_users_ * bitsPerUser));
 }
 
 int BaseRockSample::GetY(const State* state) const {
-	return (state->state_id >> (num_users_ * 8)) / grid_.xsize();
+	return (state->state_id >> (action_bits + num_rocks_ + num_users_ * bitsPerUser)) / grid_.xsize();
 }
 
 void BaseRockSample::IncY(State* state) const {
-	state->state_id += (1 << (num_users_ * 8)) * grid_.xsize();
+	state->state_id += (1 << (action_bits + num_rocks_ + num_users_ * bitsPerUser)) * grid_.xsize();
 }
 
 void BaseRockSample::DecY(State* state) const {
-	state->state_id -= (1 << (num_users_ * 8)) * grid_.xsize();
+	state->state_id -= (1 << (action_bits + num_rocks_ + num_users_ * bitsPerUser)) * grid_.xsize();
 }
 
 Coord BaseRockSample::IndexToCoord(int pos) const {
