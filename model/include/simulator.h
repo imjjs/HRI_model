@@ -1,10 +1,19 @@
 #ifndef SIMULATOR_H_
 #define SIMULATOR_H_
 
+#include <despot/interface/world.h>
 #include <despot/util/coord.h>
 #include <despot/util/grid.h>
 #include <vector>
 
+
+
+class PlayerWorld: public World{
+public:
+	virtual bool Connect();
+	virtual State* Initialize();
+	ExecuteAction(ACT_TYPE action, OBS_TYPE& obs)
+}
 
 class Player{
 private:
@@ -12,7 +21,7 @@ private:
 	double robot_cooperative_factor;
 	double noise_level;
 	std::vector<double> target_distribution;
-
+	static std::vector<Player*> player_list;
 	static int rock_num;
 
 	static int l1_distance(const despot::Coord&, const despot::Coord&);
@@ -21,9 +30,8 @@ private:
 
 public:
 	Player(double, double, double);
-	static std::vector<Player*> player_list;
 	static void set_rock_num(int);
-	void updating_hcf();
+	static void updating_hcf();
 	void updating_rcf(int);
 
 	void updating_noise();

@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "simulator.h"
-
+#include "base_rock_sample.h"
 
 #define DEFAULT_BELIEVE 50
 #define INC_BEL     100
@@ -13,6 +13,35 @@
 
 std::vector<Player*> Player::player_list;
 int Player::rock_num;
+
+bool PlayerWorld::Connect(){
+	return true;
+}
+
+State* PlayerWorld::Initialize(){
+	Player* p1 = new Player(.2, .1, 1);
+	Player* p2 = new Player(.3, .2, 1.1);
+	Player::player_list.push_back(p1);
+	Player::player_list.push_back(p2);
+	//TODI::number of rock
+	return nullptr;
+}
+
+bool PlayerWorld::ExecuteAction(ACT_TYPE action, OBS_TYPE& obs){
+	if(BaseRockSample::E_SLAVE > action){
+		//TODO::move
+	}else if(BaseRockSample::E_SLAVE == action){
+		p1_action = Player::player_list[0]->play(); //TODO
+		p2_action = Player::player_list[1]->play();
+		if(p1_action == p2_action){
+			//TODO::move
+		}
+	}else if(BaseRockSample::E_HI == action){
+		Player::updating_hcf();
+	}else if(BaseRockSample::E_HI + 2 > action){
+		Player::player_list[action - E_HI].updating_rcf() //TODO::noise?
+	}
+}
 
 Player::Player(double _hcf, double _rcf,
 		double _nl):
@@ -35,11 +64,12 @@ void Player::norm_target_distribution(){
 
 void Player::updating_hcf(){
 	std::vector<double> avg_b = avg_distribution();
-	for(int i = 0; i < rock_num; ++i){
-		double diff = avg_b[i] - target_distribution[i];
-		target_distribution[i] += human_cooperative_factor * diff;
+	for(j = 0; j < player_list.size(); ++j){
+		for(int i = 0; i < rock_num; ++i){
+			double diff = avg_b[i] - player_list[j].target_distribution[i];
+			player_list[j].target_distribution[i] += human_cooperative_factor * diff;
+		}
 	}
-
 }
 
 void Player::updating_rcf(int hinted_rock_index = -1){
