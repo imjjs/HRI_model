@@ -18,7 +18,7 @@ bool PlayerWorld::Connect(){
 	return true;
 }
 
-State* PlayerWorld::Initialize(){
+despot::State* PlayerWorld::Initialize(){
 	Player* p1 = new Player(.2, .1, 1);
 	Player* p2 = new Player(.3, .2, 1.1);
 	Player::player_list.push_back(p1);
@@ -27,10 +27,10 @@ State* PlayerWorld::Initialize(){
 	return nullptr;
 }
 
-bool PlayerWorld::ExecuteAction(ACT_TYPE action, OBS_TYPE& obs){
-	if(BaseRockSample::E_SLAVE > action){
+bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
+	if(despot::BaseRockSample::E_SLAVE > action){
 		//TODO::move
-	}else if(BaseRockSample::E_SLAVE == action){
+	}else if(despot::BaseRockSample::E_SLAVE == action){
 		p1_action = Player::player_list[0]->play(); //TODO
 		p2_action = Player::player_list[1]->play();
 		if(p1_action == p2_action){
@@ -41,6 +41,7 @@ bool PlayerWorld::ExecuteAction(ACT_TYPE action, OBS_TYPE& obs){
 	}else if(BaseRockSample::E_HI + 2 > action){
 		Player::player_list[action - E_HI].updating_rcf() //TODO::noise?
 	}
+	return true;
 }
 
 Player::Player(double _hcf, double _rcf,

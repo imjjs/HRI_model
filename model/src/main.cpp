@@ -48,7 +48,7 @@ public:
       return world; 
   }
 
-	oid PlanningLoop(Solver*& solver, World* world, Logger* logger) {
+  void PlanningLoop(Solver*& solver, World* world, Logger* logger) {
     for (int i = 0; i <STEP_LIMIT; ++i) {
       bool terminal = RunStep(solver, world, logger);
       if (terminal)

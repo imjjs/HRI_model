@@ -8,11 +8,11 @@
 
 
 
-class PlayerWorld: public World{
+class PlayerWorld: public despot::World{
 public:
 	virtual bool Connect();
-	virtual State* Initialize();
-	ExecuteAction(ACT_TYPE action, OBS_TYPE& obs)
+	virtual despot::State* Initialize();
+	bool ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs);
 }
 
 class Player{
