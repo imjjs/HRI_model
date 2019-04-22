@@ -81,7 +81,13 @@ BaseRockSample::BaseRockSample(int size, int rocks, int users) :
 	} else {
 		InitGeneral();
 	}
-
+	std::cout<<"copying rock world to PlayerWorld"<<std::endl;
+	PlayerWorld::current_pos_ = start_pos_;
+	PlayerWorld::rock_pos_ = rock_pos_;
+	PlayerWorld::grid_ = grid_;
+	PlayerWorld::num_rocks_ = num_rocks_;
+	PlayerWorld::num_users_ = num_users_;
+	PlayerWorld::size_ = size_;
 	// InitStates();
 	/*
 	Player::set_rock_num(rocks);

@@ -13,7 +13,19 @@ public:
 	virtual bool Connect();
 	virtual despot::State* Initialize();
 	bool ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs);
-}
+	static despot::Grid<int> grid_;
+	static std::vector<despot::Coord> rock_pos_;
+	static int size_;
+	static int num_rocks_;
+	static int num_users_;
+	static despot::Coord current_pos_;
+	static std::vector<bool> rock_exists_;
+	static int player1_prev_action;
+	static int player2_prev_action;
+private:
+	static void move(int direction);
+	static despot::OBS_TYPE HumanActionsEncode(int *human_actions);
+};
 
 class Player{
 private:
@@ -21,7 +33,6 @@ private:
 	double robot_cooperative_factor;
 	double noise_level;
 	std::vector<double> target_distribution;
-	static std::vector<Player*> player_list;
 	static int rock_num;
 
 	static int l1_distance(const despot::Coord&, const despot::Coord&);
@@ -37,6 +48,7 @@ public:
 	void updating_noise();
     void update_target_distribution(const std::vector<double>&);
 	int play(const despot::Grid<int>&, const std::vector<despot::Coord>&, const despot::Coord&, const std::vector<bool>&);
+	static std::vector<Player*> player_list;
 };
 
 

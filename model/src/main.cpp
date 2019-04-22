@@ -38,7 +38,7 @@ public:
   World* InitializeWorld(std::string& world_type, DSPOMDP* model, option::Option* options)
   {
       //Create a custom world as defined and implemented by the user
-      LaserTagWorld* world = new PlayerWorld();
+      PlayerWorld* world = new PlayerWorld();
       //Establish connection with external system
       world->Connect();
       //Initialize the state of the external system
@@ -49,6 +49,7 @@ public:
   }
 
   void PlanningLoop(Solver*& solver, World* world, Logger* logger) {
+    std::cout<<"Planning Loop"<<std::endl;
     for (int i = 0; i <STEP_LIMIT; ++i) {
       bool terminal = RunStep(solver, world, logger);
       if (terminal)
@@ -58,6 +59,7 @@ public:
 
   /*Customize the inner step of the planning pipeline by overloading the following function if necessary*/
   bool RunStep(Solver* solver, World* world, Logger* logger) {
+    std::cout<<"Running Step"<<std::endl;
     logger->CheckTargetTime();
 
     double step_start_t = get_time_second();
@@ -86,7 +88,7 @@ public:
         step_start_t);
   }
 
-};
+
   void InitializeDefaultParameters() {
   }
 
@@ -99,5 +101,5 @@ public:
 
 
 int main(int argc, char* argv[]) {
-  return MyPlanner().RunEvaluation(argc, argv);
+  return MyPlanner().RunPlanning(argc, argv);
 }

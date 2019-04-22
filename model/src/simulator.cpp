@@ -3,13 +3,23 @@
 #include <cmath>
 #include <random>
 #include <algorithm>
-
+#include <iostream>
 #include "simulator.h"
 #include "base_rock_sample.h"
 
 #define DEFAULT_BELIEVE 50
 #define INC_BEL     100
 #define INC_NOISE  0.3
+
+despot::Grid<int> PlayerWorld::grid_;
+std::vector<despot::Coord> PlayerWorld::rock_pos_;
+int PlayerWorld::size_;
+int PlayerWorld::num_rocks_;
+int PlayerWorld::num_users_;
+despot::Coord PlayerWorld::current_pos_;
+std::vector<bool> PlayerWorld::rock_exists_;
+int PlayerWorld::player1_prev_action;
+int PlayerWorld::player2_prev_action;
 
 std::vector<Player*> Player::player_list;
 int Player::rock_num;
@@ -18,29 +28,79 @@ bool PlayerWorld::Connect(){
 	return true;
 }
 
+despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
+	//human_actions is represented by observation enum
+	//each human action is encoded by obs_bits = 5 bits
+	//human 0 is the lower bit, if his/her action is E_STAY, it is 10000, 
+	//  if his/her action is Compass::EAST, it is 00010
+	const int obs_bits = 5;
+	despot::OBS_TYPE obs(0);
+	for (int i = num_users_-1; i >= 0; --i) {
+		obs = (obs | (1 << human_actions[i])); //SetFlag for OBS_TYPE
+		if (i == 0) break;
+		obs = (obs << obs_bits);
+	}
+
+	return obs;
+}
+
 despot::State* PlayerWorld::Initialize(){
 	Player* p1 = new Player(.2, .1, 1);
 	Player* p2 = new Player(.3, .2, 1.1);
 	Player::player_list.push_back(p1);
 	Player::player_list.push_back(p2);
-	//TODI::number of rock
+	std::cout<<"init PlayerWorld"<<std::endl;
+	for(int i = 0; i < rock_pos_.size(); ++i)
+		rock_exists_.push_back(true);
+	player1_prev_action = 4;
+	player2_prev_action = 4;
+	std::cout<<"Done"<<std::endl;
 	return nullptr;
 }
 
-bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
-	if(despot::BaseRockSample::E_SLAVE > action){
-		//TODO::move
-	}else if(despot::BaseRockSample::E_SLAVE == action){
-		p1_action = Player::player_list[0]->play(); //TODO
-		p2_action = Player::player_list[1]->play();
-		if(p1_action == p2_action){
-			//TODO::move
-		}
-	}else if(BaseRockSample::E_HI == action){
-		Player::updating_hcf();
-	}else if(BaseRockSample::E_HI + 2 > action){
-		Player::player_list[action - E_HI].updating_rcf() //TODO::noise?
+void PlayerWorld::move(int direction){
+	current_pos_ = current_pos_ + despot::Compass::DIRECTIONS[direction];
+	for(int i = 0; i < rock_pos_.size(); ++i){
+		if(current_pos_ == rock_pos_[i] && rock_exists_[i] == true)
+			rock_exists_[i] = false;
 	}
+}
+bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
+	std::cout<<"PlayerWorld Exec"<<std::endl;
+	if(despot::BaseRockSample::E_SLAVE > action){
+		move(action); 
+	}else if(despot::BaseRockSample::E_SLAVE == action){
+		if(player1_prev_action == player2_prev_action)
+			move(player1_prev_action);
+	}else if(despot::BaseRockSample::E_HI == action){
+		int min_dist = 999999;
+		int selected_rock = -1;
+		for(int i  = 0; i < rock_pos_.size(); ++i){
+			if(rock_exists_[i] == false)
+				continue;
+			int dist = despot::Coord::ManhattanDistance(current_pos_, rock_pos_[i]);
+			if(dist < min_dist){
+				min_dist = dist;
+				selected_rock = i;
+			}
+		}
+		Player::player_list[0]->updating_rcf(selected_rock);
+		Player::player_list[1]->updating_rcf(selected_rock);
+	}else if(despot::BaseRockSample::E_HI + 2 > action)
+		Player::player_list[action - despot::BaseRockSample::E_HI]->updating_noise();
+	else  //should not be here
+		assert(false);
+	int p1_action = Player::player_list[0]->play(grid_, rock_pos_, current_pos_, rock_exists_);
+	int p2_action = Player::player_list[1]->play(grid_, rock_pos_, current_pos_, rock_exists_);
+	if(p1_action != p2_action)
+		Player::updating_hcf();
+	int human_actions[2];
+	human_actions[0] = p1_action;
+	human_actions[1] = p2_action;
+	obs = HumanActionsEncode(human_actions);
+	player1_prev_action = p1_action;
+	player2_prev_action = p2_action;
+	std::cout<<"PlayerWorld Exec Done"<<std::endl;
 	return true;
 }
 
@@ -65,10 +125,10 @@ void Player::norm_target_distribution(){
 
 void Player::updating_hcf(){
 	std::vector<double> avg_b = avg_distribution();
-	for(j = 0; j < player_list.size(); ++j){
+	for(int j = 0; j < player_list.size(); ++j){
 		for(int i = 0; i < rock_num; ++i){
-			double diff = avg_b[i] - player_list[j].target_distribution[i];
-			player_list[j].target_distribution[i] += human_cooperative_factor * diff;
+			double diff = avg_b[i] - player_list[j]->target_distribution[i];
+			player_list[j]->target_distribution[i] += player_list[j]->human_cooperative_factor * diff;
 		}
 	}
 }
