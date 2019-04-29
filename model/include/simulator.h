@@ -12,6 +12,7 @@ class PlayerWorld: public despot::World{
 public:
 	virtual bool Connect();
 	virtual despot::State* Initialize();
+	virtual despot::State* GetCurrentState() const; //@@
 	bool ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs);
 	static despot::Grid<int> grid_;
 	static std::vector<despot::Coord> rock_pos_;

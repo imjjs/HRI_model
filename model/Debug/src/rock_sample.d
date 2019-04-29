@@ -26,7 +26,8 @@ src/rock_sample.o: ../src/rock_sample.cpp \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_policy.h \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_upper_bounds.h \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/particle_belief.h \
- /home/fanj2/eclipse-workspace/model/include/simulator.h
+ /home/fanj2/eclipse-workspace/model/include/simulator.h \
+ /home/fanj2/Documents/despot-API_redesign/include/despot/interface/world.h
 
 /home/fanj2/eclipse-workspace/model/include/rock_sample.h:
 
@@ -83,3 +84,5 @@ src/rock_sample.o: ../src/rock_sample.cpp \
 /home/fanj2/Documents/despot-API_redesign/include/despot/core/particle_belief.h:
 
 /home/fanj2/eclipse-workspace/model/include/simulator.h:
+
+/home/fanj2/Documents/despot-API_redesign/include/despot/interface/world.h:

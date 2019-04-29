@@ -6,6 +6,7 @@
 #include <iostream>
 #include "simulator.h"
 #include "base_rock_sample.h"
+#include <bitset>
 
 #define DEFAULT_BELIEVE 50
 #define INC_BEL     100
@@ -58,6 +59,40 @@ despot::State* PlayerWorld::Initialize(){
 	return nullptr;
 }
 
+despot::State* PlayerWorld::GetCurrentState() const {
+	const int hi_bits = 4, adapt_bits = 3, action_bits = 3;
+	int bitsPerUser = adapt_bits + 1 + hi_bits;
+	int state = (1 << (action_bits + num_rocks_ + num_users_ * bitsPerUser)) *
+			(current_pos_.y * grid_.xsize() + current_pos_.x);
+	despot::State* rockstate = new despot::RockSampleState(state);
+
+	//Set rock states
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		if (rock_exists_[rock])
+			despot::SetFlag(rockstate->state_id, rock + num_users_ * bitsPerUser);
+		else
+			despot::UnsetFlag(rockstate->state_id, rock + num_users_ * bitsPerUser);
+
+	//Set human actions
+	int action;
+	if (player1_prev_action == player2_prev_action)
+		action = player1_prev_action;
+	else
+		action = 4;
+
+	std::string action_chosen = std::bitset<action_bits>(action).to_string();
+	int pos = (num_rocks_ + num_users_ * bitsPerUser);
+	for (int i = action_bits-1; i >= 0; --i) {
+		if (action_chosen[i] == '1')
+			despot::SetFlag(rockstate->state_id, pos);
+		else
+			despot::UnsetFlag(rockstate->state_id, pos);
+		++pos;
+	}
+
+	return rockstate;
+}
+
 void PlayerWorld::move(int direction){
 	current_pos_ = current_pos_ + despot::Compass::DIRECTIONS[direction];
 	for(int i = 0; i < rock_pos_.size(); ++i){
@@ -71,7 +106,8 @@ bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 		move(action); 
 	}else if(despot::BaseRockSample::E_SLAVE == action){
 		if(player1_prev_action == player2_prev_action)
-			move(player1_prev_action);
+			if (player1_prev_action < despot::BaseRockSample::E_STAY)
+				move(player1_prev_action);
 	}else if(despot::BaseRockSample::E_HI == action){
 		int min_dist = 999999;
 		int selected_rock = -1;
@@ -101,6 +137,11 @@ bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 	player1_prev_action = p1_action;
 	player2_prev_action = p2_action;
 	std::cout<<"PlayerWorld Exec Done"<<std::endl;
+
+	for (int rock = 0; rock < num_rocks_; ++rock)
+		if (rock_exists_[rock])
+			return false;
+
 	return true;
 }
 

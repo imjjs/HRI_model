@@ -43,6 +43,8 @@ public:
       world->Connect();
       //Initialize the state of the external system
       world->Initialize();
+      //Get the state of the system
+      world->GetCurrentState();
       //Inform despot the type of world
       world_type = "simulator";
       return world; 
@@ -88,7 +90,6 @@ public:
         step_start_t);
   }
 
-
   void InitializeDefaultParameters() {
   }
 
@@ -101,5 +102,5 @@ public:
 
 
 int main(int argc, char* argv[]) {
-  return MyPlanner().RunPlanning(argc, argv);
+	return MyPlanner().RunPlanning(argc, argv);
 }

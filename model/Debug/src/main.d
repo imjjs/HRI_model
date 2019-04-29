@@ -36,7 +36,8 @@ src/main.o: ../src/main.cpp \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_lower_bounds.h \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_policy.h \
  /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_upper_bounds.h \
- /home/fanj2/Documents/despot-API_redesign/include/despot/core/particle_belief.h
+ /home/fanj2/Documents/despot-API_redesign/include/despot/core/particle_belief.h \
+ /home/fanj2/eclipse-workspace/model/include/simulator.h
 
 /home/fanj2/Documents/despot-API_redesign/include/despot/planner.h:
 
@@ -113,3 +114,5 @@ src/main.o: ../src/main.cpp \
 /home/fanj2/Documents/despot-API_redesign/include/despot/core/builtin_upper_bounds.h:
 
 /home/fanj2/Documents/despot-API_redesign/include/despot/core/particle_belief.h:
+
+/home/fanj2/eclipse-workspace/model/include/simulator.h:
