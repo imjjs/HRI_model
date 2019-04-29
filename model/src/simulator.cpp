@@ -46,8 +46,9 @@ despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
 }
 
 despot::State* PlayerWorld::Initialize(){
-	Player* p1 = new Player(.2, .1, 1);
-	Player* p2 = new Player(.3, .2, 1.1);
+	//@@ Modify player property
+	Player* p1 = new Player(1.0, 1.0, 0);
+	Player* p2 = new Player(1.0, 1.0, 0);
 	Player::player_list.push_back(p1);
 	Player::player_list.push_back(p2);
 	std::cout<<"init PlayerWorld"<<std::endl;
@@ -93,21 +94,39 @@ despot::State* PlayerWorld::GetCurrentState() const {
 	return rockstate;
 }
 
-void PlayerWorld::move(int direction){
-	current_pos_ = current_pos_ + despot::Compass::DIRECTIONS[direction];
+void PlayerWorld::move(int action){
+	switch(action) {
+	case despot::Compass::EAST:
+		if (current_pos_.x + 1 < size_)
+			current_pos_.x += 1;
+		break;
+	case despot::Compass::NORTH:
+		if (current_pos_.y + 1 < size_)
+			current_pos_.y += 1;
+		break;
+	case despot::Compass::SOUTH:
+		if (current_pos_.y - 1 >= 0)
+			current_pos_.y -= 1;
+		break;
+	case despot::Compass::WEST:
+		if (current_pos_.x - 1 >= 0)
+			current_pos_.x -= 1;
+		break;
+	}
+
 	for(int i = 0; i < rock_pos_.size(); ++i){
 		if(current_pos_ == rock_pos_[i] && rock_exists_[i] == true)
 			rock_exists_[i] = false;
 	}
 }
+
 bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 	std::cout<<"PlayerWorld Exec"<<std::endl;
 	if(despot::BaseRockSample::E_SLAVE > action){
 		move(action); 
 	}else if(despot::BaseRockSample::E_SLAVE == action){
 		if(player1_prev_action == player2_prev_action)
-			if (player1_prev_action < despot::BaseRockSample::E_STAY)
-				move(player1_prev_action);
+			move(player1_prev_action);
 	}else if(despot::BaseRockSample::E_HI == action){
 		int min_dist = 999999;
 		int selected_rock = -1;
