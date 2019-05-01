@@ -190,6 +190,7 @@ void Player::updating_hcf(){
 		for(int i = 0; i < rock_num; ++i){
 			double diff = avg_b[i] - player_list[j]->target_distribution[i];
 			player_list[j]->target_distribution[i] += player_list[j]->human_cooperative_factor * diff;
+			player_list[j]->norm_target_distribution();
 		}
 	}
 }
@@ -197,6 +198,7 @@ void Player::updating_hcf(){
 void Player::updating_rcf(int hinted_rock_index = -1){
 	if(hinted_rock_index != -1)
 		target_distribution[hinted_rock_index] += INC_BEL * robot_cooperative_factor;
+		norm_target_distribution();
 }
 
 void Player::updating_noise(){
