@@ -47,6 +47,7 @@ despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
 
 despot::State* PlayerWorld::Initialize(){
 	//@@ Modify player property
+	Player::set_rock_num(rock_pos_.size());
 	Player* p1 = new Player(1.0, 1.0, 0);
 	Player* p2 = new Player(1.0, 1.0, 0);
 	Player::player_list.push_back(p1);
@@ -219,9 +220,15 @@ std::vector<double> Player::avg_distribution(){
 }
 
 int Player::play(const despot::Grid<int>& grid_, const std::vector<despot::Coord>& rock_pos_, const despot::Coord& current_pos_, const std::vector<bool>& rock_exist_){
+	std::cout<<"Player start"<<std::endl;
 	int x = current_pos_.x;
 	int y = current_pos_.y;
 	//{North, East, South, West, Stay}
+	std::cout<<"current pos:("<<x<<','<<y<<')'<<std::endl;
+	std::cout<<"rock pos:";
+	for(auto &tmp: rock_pos_)
+		std::cout<<'('<<tmp.x<<','<<tmp.y<<')';
+	std::cout<<std::endl;
 	std::vector<despot::Coord> pos_list {despot::Coord(x, y + 1), despot::Coord(x + 1, y),
 		despot::Coord(x, y - 1), despot::Coord(x - 1, y), despot::Coord(x, y)};
 	std::vector<double> value_list {0.0, 0.0, 0.0, 0.0, 0.0};
@@ -231,6 +238,10 @@ int Player::play(const despot::Grid<int>& grid_, const std::vector<despot::Coord
 	    if(!grid_.Inside(pos_list[i]))
 	        coord_available_list[i] = false;
 	}
+	std::cout<<"target belief:";
+	for(auto &tmp: target_distribution)
+		std::cout<<tmp<<", ";
+	std::cout<<std::endl;
 	std::default_random_engine generator;
 	std::normal_distribution<double> d1(0.0, noise_level);
 	for(int i = 0; i < value_list.size(); ++i){
@@ -244,8 +255,14 @@ int Player::play(const despot::Grid<int>& grid_, const std::vector<despot::Coord
 		value += d1(generator);
 		value_list[i] = value;
 	}
+	std::cout<<"target value:";
+	for(auto &tmp: value_list)
+		std::cout<<tmp<<", ";
+	std::cout<<std::endl;
 	return std::distance(value_list.begin(), std::max_element(value_list.begin(), value_list.end()));
 }
+
+
 
 
 int Player::l1_distance(const despot::Coord& a_pos, const despot::Coord& b_pos){

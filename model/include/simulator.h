@@ -45,7 +45,6 @@ public:
 	static void set_rock_num(int);
 	static void updating_hcf();
 	void updating_rcf(int);
-
 	void updating_noise();
     void update_target_distribution(const std::vector<double>&);
 	int play(const despot::Grid<int>&, const std::vector<despot::Coord>&, const despot::Coord&, const std::vector<bool>&);
