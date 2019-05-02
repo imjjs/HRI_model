@@ -51,6 +51,15 @@ despot::State* PlayerWorld::Initialize(){
 	Player* p1 = new Player(1.0, 1.0, 0);
 	Player* p2 = new Player(1.0, 1.0, 0);
 	Player::player_list.push_back(p1);
+
+	//@@ Modify player initial target belief, range [0, 100]
+	std::vector<double> p1_initial_target_belief (num_rocks_, 0.0);
+	p1_initial_target_belief[2] = 50;
+	p1->update_target_distribution(p1_initial_target_belief);
+	std::vector<double> p2_initial_target_belief (num_rocks_, 0.0);
+	p2_initial_target_belief[3] = 50;
+	p2->update_target_distribution(p2_initial_target_belief);
+
 	Player::player_list.push_back(p2);
 	std::cout<<"init PlayerWorld"<<std::endl;
 	for(int i = 0; i < rock_pos_.size(); ++i)
