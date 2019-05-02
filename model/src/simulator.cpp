@@ -189,8 +189,14 @@ void Player::update_target_distribution(const std::vector<double>& _target_distr
 void Player::norm_target_distribution(){
     double max = *std::max_element(target_distribution.begin(), target_distribution.end());
     double min = *std::min_element(target_distribution.begin(), target_distribution.end());
-    for(int i = 0; i < target_distribution.size(); ++i)
-        target_distribution[i] = (target_distribution[i] - min) / (max - min) * 100;
+	//std::cout<<max<<','<<min<<std::endl;
+	if(max == min){
+		for(int i = 0; i < target_distribution.size(); ++i)
+		target_distribution[i] = 50;
+	}else{
+    	for(int i = 0; i < target_distribution.size(); ++i)
+        	target_distribution[i] = (target_distribution[i] - min) / (max - min) * 100;
+	}
 }
 
 void Player::updating_hcf(){
@@ -199,8 +205,8 @@ void Player::updating_hcf(){
 		for(int i = 0; i < rock_num; ++i){
 			double diff = avg_b[i] - player_list[j]->target_distribution[i];
 			player_list[j]->target_distribution[i] += player_list[j]->human_cooperative_factor * diff;
-			player_list[j]->norm_target_distribution();
 		}
+		player_list[j]->norm_target_distribution();
 	}
 }
 
@@ -269,7 +275,7 @@ int Player::play(const despot::Grid<int>& grid_, const std::vector<despot::Coord
 	std::cout<<"target value:";
 	for(auto &tmp: value_list)
 		std::cout<<tmp<<", ";
-	std::cout<<std::endl;
+	std::cout<<"Player end"<<std::endl;
 	return std::distance(value_list.begin(), std::max_element(value_list.begin(), value_list.end()));
 }
 
