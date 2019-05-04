@@ -48,7 +48,7 @@ despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
 despot::State* PlayerWorld::Initialize(){
 	//@@ Modify player property
 	Player::set_rock_num(rock_pos_.size());
-	Player* p1 = new Player(1.0, 1.0, 0);
+	Player* p1 = new Player(0.0, 1.0, 0);
 	Player* p2 = new Player(1.0, 1.0, 0);
 	Player::player_list.push_back(p1);
 
