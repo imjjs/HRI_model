@@ -44,6 +44,7 @@ public:
 	Player(double, double, double);
 	static void set_rock_num(int);
 	static void updating_hcf();
+	void rock_reached(int);
 	void updating_rcf(int);
 	void updating_noise();
     void update_target_distribution(const std::vector<double>&);

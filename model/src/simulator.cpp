@@ -125,8 +125,11 @@ void PlayerWorld::move(int action){
 	}
 
 	for(int i = 0; i < rock_pos_.size(); ++i){
-		if(current_pos_ == rock_pos_[i] && rock_exists_[i] == true)
+		if(current_pos_ == rock_pos_[i] && rock_exists_[i] == true){
 			rock_exists_[i] = false;
+			for(auto p: Player::player_list)
+				p->rock_reached(i);
+		}
 	}
 }
 
@@ -172,6 +175,11 @@ bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 			return false;
 
 	return true;
+}
+
+void Player::rock_reached(int idx){
+	target_distribution[idx] = 0;
+	norm_target_distribution();
 }
 
 Player::Player(double _hcf, double _rcf,
