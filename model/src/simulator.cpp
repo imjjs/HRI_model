@@ -48,8 +48,8 @@ despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
 despot::State* PlayerWorld::Initialize(){
 	//@@ Modify player property
 	Player::set_rock_num(rock_pos_.size());
-	Player* p1 = new Player(0.0, 1.0, 0);
-	Player* p2 = new Player(1.0, 1.0, 0);
+	Player* p1 = new Player(0.1, 1.0, 0);
+	Player* p2 = new Player(0.9, 1.0, 0);
 	Player::player_list.push_back(p1);
 
 	//@@ Modify player initial target belief, range [0, 100]
@@ -176,7 +176,7 @@ bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 }
 
 void Player::rock_reached(int idx){
-	target_distribution[idx] = 0;
+	target_distribution[idx] = -1;
 	norm_target_distribution();
 }
 
@@ -197,7 +197,7 @@ void Player::norm_target_distribution(){
     double min = 200;
 	for(int i = 0; i < target_distribution.size(); ++i){
 		if(false == PlayerWorld::rock_exists_[i]){
-			assert(target_distribution[i] - 0.0 < 1e-3);
+			assert(target_distribution[i] - 1.0 < 1e-3);
 			continue;
 		}
 		if(max < target_distribution[i])
@@ -206,11 +206,17 @@ void Player::norm_target_distribution(){
 			min = target_distribution[i];
 	}
 	if(max == min){
-		for(int i = 0; i < target_distribution.size(); ++i)
+		for(int i = 0; i < target_distribution.size(); ++i){
+			if(false == PlayerWorld::rock_exists_[i])
+				continue;
 			target_distribution[i] = 50;
+		}
 	}else{
-    	for(int i = 0; i < target_distribution.size(); ++i)
+    	for(int i = 0; i < target_distribution.size(); ++i){
+			if(false == PlayerWorld::rock_exists_[i])
+				continue;
         	target_distribution[i] = (target_distribution[i] - min) / (max - min) * 100;
+		}
 	}
 }
 
