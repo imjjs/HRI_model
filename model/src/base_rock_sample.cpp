@@ -87,6 +87,8 @@ BaseRockSample::BaseRockSample(int size, int rocks, int users) :
 	PlayerWorld::grid_ = grid_;
 	PlayerWorld::num_rocks_ = num_rocks_;
 	PlayerWorld::num_users_ = num_users_;
+	for(int i = 0; i < num_rocks_; ++i)
+		PlayerWorld::rock_exists_.push_back(true);
 	PlayerWorld::size_ = size_;
 	// InitStates();
 	/*

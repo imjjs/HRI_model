@@ -62,8 +62,6 @@ despot::State* PlayerWorld::Initialize(){
 
 	Player::player_list.push_back(p2);
 	std::cout<<"init PlayerWorld"<<std::endl;
-	for(int i = 0; i < rock_pos_.size(); ++i)
-		rock_exists_.push_back(true);
 	player1_prev_action = 4;
 	player2_prev_action = 4;
 	std::cout<<"Done"<<std::endl;
@@ -195,12 +193,21 @@ void Player::update_target_distribution(const std::vector<double>& _target_distr
 }
 
 void Player::norm_target_distribution(){
-    double max = *std::max_element(target_distribution.begin(), target_distribution.end());
-    double min = *std::min_element(target_distribution.begin(), target_distribution.end());
-	//std::cout<<max<<','<<min<<std::endl;
+    double max = -200;
+    double min = 200;
+	for(int i = 0; i < target_distribution.size(); ++i){
+		if(false == PlayerWorld::rock_exists_[i]){
+			assert(target_distribution[i] - 0.0 < 1e-3);
+			continue;
+		}
+		if(max < target_distribution[i])
+			max = target_distribution[i];
+		if(min > target_distribution[i])
+			min = target_distribution[i];
+	}
 	if(max == min){
 		for(int i = 0; i < target_distribution.size(); ++i)
-		target_distribution[i] = 50;
+			target_distribution[i] = 50;
 	}else{
     	for(int i = 0; i < target_distribution.size(); ++i)
         	target_distribution[i] = (target_distribution[i] - min) / (max - min) * 100;
@@ -214,8 +221,9 @@ void Player::updating_hcf(){
 			double diff = avg_b[i] - player_list[j]->target_distribution[i];
 			player_list[j]->target_distribution[i] += player_list[j]->human_cooperative_factor * diff;
 		}
-		player_list[j]->norm_target_distribution();
 	}
+	for(int j = 0; j < player_list.size(); ++j)
+		player_list[j]->norm_target_distribution();
 }
 
 void Player::updating_rcf(int hinted_rock_index = -1){
@@ -235,12 +243,17 @@ void Player::set_rock_num(int _rock_num){
 std::vector<double> Player::avg_distribution(){
 		std::vector<double> ret;
 		for(int i = 0; i < rock_num; ++i){
-			int tmp = 0;
-			for(int j = 0; j < player_list.size(); ++j)
-				tmp += player_list[j]->target_distribution[j];
+			double tmp = 0;
+			for(int j = 0; j < player_list.size(); ++j){
+				tmp += player_list[j]->target_distribution[i];
+			}
 			tmp /= player_list.size();
 			ret.push_back(tmp);
 		}
+		std::cout<<"avg target belief:";
+	for(auto &tmp: ret)
+		std::cout<<tmp<<", ";
+	std::cout<<std::endl;
 		return ret;
 }
 
