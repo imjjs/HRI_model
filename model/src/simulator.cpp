@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <random>
 #include <algorithm>
@@ -256,10 +257,6 @@ std::vector<double> Player::avg_distribution(){
 			tmp /= player_list.size();
 			ret.push_back(tmp);
 		}
-		std::cout<<"avg target belief:";
-	for(auto &tmp: ret)
-		std::cout<<tmp<<", ";
-	std::cout<<std::endl;
 		return ret;
 }
 
@@ -286,17 +283,25 @@ int Player::play(const despot::Grid<int>& grid_, const std::vector<despot::Coord
 	for(auto &tmp: target_distribution)
 		std::cout<<tmp<<", ";
 	std::cout<<std::endl;
-	std::default_random_engine generator;
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::default_random_engine generator(seed);
+
 	std::normal_distribution<double> d1(0.0, noise_level);
 	for(int i = 0; i < value_list.size(); ++i){
         double value = 0;
-	    if(!coord_available_list[i])
-            continue;
+	    if(!coord_available_list[i]){
+            value_list[i] = -1000;
+			continue;
+		}
 		for(int j = 0; j < rock_num; ++j){
 			int l1_dist = l1_distance(pos_list[i], rock_pos_[j]);
+			//std::cout<<"i:"<<i<<",j:"<<j<<",expl1:"<< exp(-1.0 * l1_dist)<<",exist:"<<rock_exist_[j]<<",target:"<<target_distribution[j]<<
+			//",result:"<<target_distribution[j] * exp(-1.0 * l1_dist) * rock_exist_[j]<<std::endl;
 			value += target_distribution[j] * exp(-1.0 * l1_dist) * rock_exist_[j];  //TODO:: Adjust parameter
 		}
-		value += d1(generator);
+		double a = d1(generator);
+		//std::cout<<"i:"<<i<<"random:"<<a<<std::endl;
+		value += a;
 		value_list[i] = value;
 	}
 	std::cout<<"target value:";
