@@ -63,9 +63,9 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 		}
 		//@@ Assume when robot tries to influence HIs, it provides a specific HI
 		// to let all users adapt their HI to this HI.
-		// In this specific example, I choose to use the closest rock that each user
-		// intend to grab as the new HI
+		// In this specific example, I choose to use the closest rock
 
+		/*
 		// Find rocks that users are interested in
 		vector<Coord> candid_rocks;
 		unordered_map<int, int> rockIdxMap;
@@ -88,6 +88,8 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 			chosen = ClosestRockAmongAll(&rockstate);
 		else
 			chosen = ClosestRockAmongCandid(candid_rocks, GetRobPos(&rockstate), rockIdxMap);
+		*/
+		int chosen = ClosestRockAmongAll(&rockstate);
 
 		// For each user, they switch their HI to this new HI with probability of adapt
 		for (int user = 0; user < num_users_; ++user) {
@@ -112,7 +114,7 @@ bool RockSample::Step(State& state, double rand_num, ACT_TYPE action, double& re
 		if (rand_num > (1 - adapt)) {
 			//user becomes engaged with probability adapt
 			SetHA(&rockstate, user);
-			reward += 10; //@@ think about this value.
+			reward += 60; //@@ think about this value.
 		} //otherwise user stay not engaged
 	}
 

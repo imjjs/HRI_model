@@ -150,7 +150,7 @@ public:
 
 	/* ESSENTIAL FUNCTIONS: Bound-related functions. */
 	inline double GetMaxReward() const {
-		return 20;
+		return 50;
 	}
 
 	/*

@@ -49,8 +49,8 @@ despot::OBS_TYPE PlayerWorld::HumanActionsEncode(int *human_actions){
 despot::State* PlayerWorld::Initialize(){
 	//@@ Modify player property
 	Player::set_rock_num(rock_pos_.size());
-	Player* p1 = new Player(0.1, 0.1, 10);
-	Player* p2 = new Player(0.1, 0.1, 10);
+	Player* p1 = new Player(0.99, 1.0, 20);
+	Player* p2 = new Player(0.99, 1.0, 20);
 	Player::player_list.push_back(p1);
 
 	//@@ Modify player initial target belief, range [0, 100]
@@ -153,8 +153,8 @@ bool PlayerWorld::ExecuteAction(despot::ACT_TYPE action, despot::OBS_TYPE& obs){
 		}
 		Player::player_list[0]->updating_rcf(selected_rock);
 		Player::player_list[1]->updating_rcf(selected_rock);
-	}else if(despot::BaseRockSample::E_HI + 2 > action)
-		Player::player_list[action - despot::BaseRockSample::E_HI]->updating_noise();
+	}else if(despot::BaseRockSample::E_HI + 2 >= action)
+		Player::player_list[action - despot::BaseRockSample::E_HI - 1]->updating_noise();
 	else  //should not be here
 		assert(false);
 	int p1_action = Player::player_list[0]->play(grid_, rock_pos_, current_pos_, rock_exists_);

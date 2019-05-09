@@ -2,6 +2,8 @@
 #include "simulator.h"
 #include <bitset>
 #include <math.h>
+#include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -985,6 +987,9 @@ void BaseRockSample::PrintState(const State& state, ostream& out) const {
 void BaseRockSample::PrintBelief(const Belief& belief, ostream& out) const {
 	const vector<State*>& particles =
 		static_cast<const ParticleBelief&>(belief).particles();
+
+	out << std::fixed;
+	out << std::setprecision(2);
 
 	// B adaptability
 	vector<double> adapt_probs(num_users_, 0.0);
