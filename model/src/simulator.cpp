@@ -240,7 +240,7 @@ void Player::updating_rcf(int hinted_rock_index = -1){
 }
 
 void Player::updating_noise(){
-	noise_level *= INC_NOISE;
+	noise_level *= (1.0 - robot_cooperative_factor);
 }
 
 void Player::set_rock_num(int _rock_num){
