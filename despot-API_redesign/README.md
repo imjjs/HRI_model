@@ -1,4 +1,4 @@
-This POPMDP is based on the work of the DESPOT algorithm for online POMDP planning [1].
+This POMDP solver is based on the work of the DESPOT algorithm for online POMDP planning [1].
 
 [1] N. Ye, A. Somani, D. Hsu, and W. Lee. [**DESPOT: Online POMDP planning with regularization**](http://bigbird.comp.nus.edu.sg/m2ap/wordpress/wp-content/uploads/2017/08/jair14.pdf). J. Artificial Intelligence Research, 58:231–266, 2017.
 
